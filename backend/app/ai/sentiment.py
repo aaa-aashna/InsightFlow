@@ -1,70 +1,131 @@
+import random
+import re
 from transformers import pipeline
 
+# We keep the pipeline loaded to use as a baseline sentiment signal
 classifier = pipeline(
     "sentiment-analysis",
     model="distilbert-base-uncased-finetuned-sst-2-english"
 )
 
 def analyze_caption(text: str):
+    if not text.strip():
+        text = "This is a default test caption."
+
     result = classifier(text)[0]
-
     label = result["label"]
-    score = round(result["score"], 4)
+    confidence = round(result["score"], 4)
 
-    hashtags = [word for word in text.split() if word.startswith("#")]
+    # Basic extractions
+    words = text.split()
+    word_count = len(words)
+    sentences = re.split(r'[.!?]+', text)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    sentence_count = len(sentences) if sentences else 1
+    hashtags = [w for w in words if w.startswith("#")]
+    emojis = len(re.findall(r'[^\w\s,\.\!\?\#\:\-\_\"\'\(\)]', text))
 
-    virality_score = 50
-    engagement_score = 50
+    # Heuristic 1: Readability (pacing, sentence length)
+    avg_words_per_sentence = word_count / sentence_count
+    if 5 <= avg_words_per_sentence <= 15:
+        readability_score = 90
+    elif avg_words_per_sentence < 5:
+        readability_score = 70 # Too choppy
+    else:
+        readability_score = max(30, 100 - (avg_words_per_sentence * 2))
 
-    # Sentiment scoring
+    # Heuristic 2: Emotional Intensity
+    emotional_words = ["love", "hate", "crazy", "unbelievable", "secret", "fail", "win", "best", "worst", "amazing", "stop", "never", "always"]
+    emotion_count = sum(1 for w in words if w.lower().strip(',.!') in emotional_words)
+    emotion_score = min(100, 40 + (emotion_count * 15) + (emojis * 5))
     if label == "POSITIVE":
-        virality_score += 20
-        engagement_score += 25
-        engagement = "High engagement potential"
-    else:
-        engagement_score -= 10
-        engagement = "Moderate engagement potential"
+        emotion_score = min(100, emotion_score + 10)
 
-    # Hook analysis
-    if len(text.split()) > 8:
-        hook_strength = "Strong"
-        hook_score = min(100, 70 + (len(text.split()) * 2))
-        virality_score += 10
-        engagement_score += 10
-    else:
-        hook_strength = "Weak"
-        hook_score = 40
-        engagement_score -= 10
+    # Heuristic 3: Hook Strength (First sentence analysis)
+    first_sentence = sentences[0] if sentences else ""
+    first_sentence_words = len(first_sentence.split())
+    hook_score = 50
+    if 3 <= first_sentence_words <= 10:
+        hook_score += 20 # Punchy hook
+    if "?" in first_sentence or "!" in first_sentence:
+        hook_score += 15
+    if any(w in first_sentence.lower() for w in ["stop", "you", "secret", "how", "why"]):
+        hook_score += 15
 
-    # Hashtag analysis
-    if len(hashtags) >= 3:
-        hashtag_quality = "Good hashtag strategy"
-        virality_score += 10
-        engagement_score += 15
+    # Heuristic 4: CTA Presence (Last sentence analysis)
+    last_sentence = sentences[-1] if len(sentences) > 1 else text
+    cta_score = 30
+    if "?" in last_sentence:
+        cta_score += 30
+    if any(w in text.lower() for w in ["comment", "link", "bio", "save", "share", "tag", "drop", "below"]):
+        cta_score += 40
+
+    # Heuristic 5: Discoverability (Hashtags)
+    if len(hashtags) >= 3 and len(hashtags) <= 8:
+        discoverability_score = 95
+        hashtag_quality = "Optimal niche targeting"
+    elif len(hashtags) > 8:
+        discoverability_score = 60
+        hashtag_quality = "Potential hashtag stuffing"
     elif len(hashtags) > 0:
-        hashtag_quality = "Relevant niche hashtags detected"
-        virality_score += 5
-        engagement_score += 5
+        discoverability_score = 75
+        hashtag_quality = "Needs more niche tags"
     else:
+        discoverability_score = 20
         hashtag_quality = "No hashtags detected"
 
-    virality_score = min(100, max(0, virality_score))
-    engagement_score = min(100, max(0, engagement_score))
-    hook_score = min(100, max(0, hook_score))
-
-    # Creator suggestions
-    if virality_score >= 80:
-        suggestion = "Strong content structure. Ready for posting."
-    elif virality_score >= 60:
-        suggestion = "Improve the opening hook for better retention."
+    # Category & Tone Classification
+    text_lower = text.lower()
+    if any(w in text_lower for w in ["learn", "how to", "step", "tutorial", "guide"]):
+        category = "Educational"
+        tone = "Authoritative & Informative"
+    elif any(w in text_lower for w in ["mindset", "grind", "success", "never give up", "consistent"]):
+        category = "Motivational"
+        tone = "Inspiring & Uplifting"
+    elif any(w in text_lower for w in ["buy", "sale", "discount", "offer"]):
+        category = "Promotional"
+        tone = "Sales-oriented"
+    elif emotion_score > 75:
+        category = "Storytelling"
+        tone = "Emotional & Raw"
     else:
-        suggestion = "Add more emotional storytelling."
+        category = "General/Lifestyle"
+        tone = "Casual & Conversational"
+
+    # Aggregate Scores
+    virality_score = int((hook_score * 0.3) + (emotion_score * 0.2) + (cta_score * 0.2) + (discoverability_score * 0.15) + (readability_score * 0.15))
+    engagement_score = int((cta_score * 0.4) + (emotion_score * 0.4) + (readability_score * 0.2))
+    retention_score = int((hook_score * 0.6) + (readability_score * 0.4))
+
+    # Explanations
+    explanations = []
+    if hook_score >= 80:
+        explanations.append("High retention expected due to a punchy, curiosity-driven hook.")
+    else:
+        explanations.append("Weak opening may cause viewers to scroll past. Consider adding a bold claim or question.")
+
+    if emotion_score >= 80:
+        explanations.append("Strong emotional resonance detected. This increases likelihood of shares and saves.")
+        
+    if cta_score < 50:
+        explanations.append("Missing a clear Call-To-Action. Tell your audience exactly what to do next.")
+    else:
+        explanations.append("Excellent CTA structure encourages direct audience interaction.")
+
+    explanation_text = " ".join(explanations)
+
+    # Formatting Radar Data
+    radar_data = [
+        {"metric": "Hook", "A": hook_score, "fullMark": 100},
+        {"metric": "Emotion", "A": emotion_score, "fullMark": 100},
+        {"metric": "Readability", "A": readability_score, "fullMark": 100},
+        {"metric": "CTA", "A": cta_score, "fullMark": 100},
+        {"metric": "Discovery", "A": discoverability_score, "fullMark": 100},
+    ]
 
     # Generate trend data based on virality_score
-    base_reach = virality_score * 100
-    base_eng = engagement_score * 50
-    
-    import random
+    base_reach = virality_score * 150
+    base_eng = engagement_score * 80
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     trend_data = []
     for day in days:
@@ -80,19 +141,22 @@ def analyze_caption(text: str):
         {"name": "#fyp", "score": 85, "color": "#3b82f6"},
         {"name": "#trending", "score": 75, "color": "#22c55e"}
     ]
-    if label == "POSITIVE":
-        recommended_hashtags[1] = {"name": "#inspiration", "score": 88, "color": "#3b82f6"}
 
     return {
         "sentiment": label,
-        "confidence": score,
-        "engagement_prediction": engagement,
+        "confidence": confidence,
+        "content_category": category,
+        "creator_tone": tone,
+        "engagement_prediction": "High" if engagement_score > 75 else "Moderate",
         "engagement_score": engagement_score,
-        "hook_strength": hook_strength,
+        "hook_strength": "Strong" if hook_score > 75 else "Weak",
         "hook_score": hook_score,
+        "retention_score": retention_score,
         "hashtag_quality": hashtag_quality,
         "virality_score": virality_score,
-        "creator_suggestion": suggestion,
+        "creator_suggestion": explanations[0] if explanations else "Content structure looks decent.",
+        "detailed_explanation": explanation_text,
+        "radar_data": radar_data,
         "trend_data": trend_data,
         "recommended_hashtags": recommended_hashtags
     }

@@ -46,3 +46,34 @@ def generate_cta(text: str) -> str:
     cta = random.choice(ctas)
     
     return f"{text}\n\n{cta}"
+
+def add_emotional_impact(text: str) -> str:
+    """Injects emotional adjectives to increase intensity."""
+    emotional_words = ["incredible", "heartbreaking", "mind-blowing", "unreal", "powerful"]
+    word = random.choice(emotional_words)
+    return f"This is absolutely {word}. {text}"
+
+def make_more_relatable(text: str) -> str:
+    """Makes the tone more casual and relatable."""
+    phrases = [
+        "We've all been there...",
+        "Am I the only one who does this?",
+        "Real talk:",
+        "Let's be honest for a second."
+    ]
+    phrase = random.choice(phrases)
+    return f"{phrase}\n{text}"
+
+def increase_engagement(text: str) -> str:
+    """Adds an engaging question or poll to the text."""
+    questions = [
+        "\n\nWhat do you guys think? Let me know 👇",
+        "\n\nHave you ever experienced this?",
+        "\n\nAgree or disagree? Drop a comment! 🗣️"
+    ]
+    return f"{text}{random.choice(questions)}"
+
+def generate_better_hashtags(text: str) -> str:
+    """Appends trending niche hashtags based on content length."""
+    tags = "\n\n#viral #fyp #creator #tips #growth #mindset"
+    return f"{text}{tags}"

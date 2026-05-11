@@ -74,6 +74,15 @@ def analyze_caption(text: str):
             "engagement": int(base_eng * random.uniform(0.8, 1.2))
         })
 
+    # Recommended hashtags
+    recommended_hashtags = [
+        {"name": "#viral", "score": 98, "color": "#a855f7"},
+        {"name": "#fyp", "score": 85, "color": "#3b82f6"},
+        {"name": "#trending", "score": 75, "color": "#22c55e"}
+    ]
+    if label == "POSITIVE":
+        recommended_hashtags[1] = {"name": "#inspiration", "score": 88, "color": "#3b82f6"}
+
     return {
         "sentiment": label,
         "confidence": score,
@@ -84,5 +93,6 @@ def analyze_caption(text: str):
         "hashtag_quality": hashtag_quality,
         "virality_score": virality_score,
         "creator_suggestion": suggestion,
-        "trend_data": trend_data
+        "trend_data": trend_data,
+        "recommended_hashtags": recommended_hashtags
     }

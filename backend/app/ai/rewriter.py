@@ -4,10 +4,10 @@ import re
 def make_more_viral(text: str) -> str:
     """Enhances text with viral triggers and urgency."""
     viral_phrases = [
-        "This changes everything. 🤯",
-        "Stop scrolling and read this! 🔥",
+        "This changes everything. ",
+        "Stop scrolling and read this! ",
         "The secret nobody tells you:",
-        "I can't believe I'm sharing this for free 🚀",
+        "I can't believe I'm sharing this for free ",
     ]
     prefix = random.choice(viral_phrases)
     
@@ -67,9 +67,9 @@ def make_more_relatable(text: str) -> str:
 def increase_engagement(text: str) -> str:
     """Adds an engaging question or poll to the text."""
     questions = [
-        "\n\nWhat do you guys think? Let me know 👇",
+        "\n\nWhat do you guys think? Let me know ",
         "\n\nHave you ever experienced this?",
-        "\n\nAgree or disagree? Drop a comment! 🗣️"
+        "\n\nAgree or disagree? Drop a comment! "
     ]
     return f"{text}{random.choice(questions)}"
 

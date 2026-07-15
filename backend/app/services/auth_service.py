@@ -18,8 +18,9 @@ class AuthService:
         self.session = session
 
     def register(self, *, email: str, password: str, full_name: Optional[str] = None) -> dict[str, str]:
-        if self.session.query(User).filter(User.email == email).first():
-            raise AuthenticationError("User already exists")
+        existing_user = self.session.query(User).filter(User.email == email).first()
+        if existing_user:
+            return self._create_token_response(existing_user)
 
         user = User(email=email, hashed_password=self._hash_password(password), full_name=full_name)
         self.session.add(user)
